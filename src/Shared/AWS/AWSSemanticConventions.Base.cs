@@ -334,6 +334,11 @@ internal partial class AWSSemanticConventions
         /// </summary>
         public virtual string AttributeAWSBedrock => string.Empty;
 
+        /// <summary>
+        /// Not yet incorporated in Semantic Conventions repository.
+        /// </summary>
+        public virtual string AttributeAWSS3Bucket => string.Empty;
+
         #endregion
 
         #region FAAS Attributes

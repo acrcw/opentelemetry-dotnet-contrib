@@ -14,6 +14,8 @@ using Amazon.BedrockRuntime.Model;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Amazon.Runtime;
+using Amazon.S3;
+using Amazon.S3.Model;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using OpenTelemetry.Instrumentation.AWS.Tests.Tools;
@@ -609,6 +611,45 @@ public class TestAWSClientInstrumentation
         Assert.Equal(requestId, Utils.GetTagValue(awssdk_activity, "aws.request_id"));
     }
 
+    [Fact]
+#if NETFRAMEWORK
+    public void TestS3PutBucketSuccessful()
+#else
+    public async Task TestS3PutBucketSuccessful()
+#endif
+    {
+        var exportedItems = new List<Activity>();
+
+        var parent = new Activity("parent").Start();
+
+        using (Sdk.CreateTracerProviderBuilder()
+                   .AddXRayTraceId()
+                   .SetSampler(new AlwaysOnSampler())
+                   .AddAWSInstrumentation()
+                   .AddInMemoryExporter(exportedItems)
+                   .Build())
+        {
+            var s3 = new AmazonS3Client(new AnonymousAWSCredentials(), RegionEndpoint.USEast1);
+            string requestId = @"fakerequ-esti-dfak-ereq-uestidfakere";
+            string dummyResponse = "{}";
+            CustomResponses.SetResponse(s3, dummyResponse, requestId, true);
+            var put_bucket_req = new PutBucketRequest();
+            put_bucket_req.BucketName = "MyTestBucket";
+#if NETFRAMEWORK
+            s3.PutBucket(put_bucket_req);
+#else
+            await s3.PutBucketAsync(put_bucket_req);
+#endif
+            Assert.NotEmpty(exportedItems);
+            var awssdk_activity = exportedItems.FirstOrDefault(e => e.DisplayName == "S3.PutBucket");
+            Assert.NotNull(awssdk_activity);
+            this.ValidateAWSActivity(awssdk_activity, parent);
+            this.ValidateS3ActivityTags(awssdk_activity);
+            Assert.Equal(ActivityStatusCode.Unset, awssdk_activity.Status);
+            Assert.Equal(requestId, Utils.GetTagValue(awssdk_activity, "aws.request_id"));
+        }
+    }
+
     private void ValidateAWSActivity(Activity aws_activity, Activity parent)
     {
         Assert.Equal(parent.SpanId, aws_activity.ParentSpanId);
@@ -696,5 +737,14 @@ public class TestAWSClientInstrumentation
         Assert.Equal("aws-api", Utils.GetTagValue(bedrock_activity, "rpc.system"));
         Assert.Equal("Bedrock Agent Runtime", Utils.GetTagValue(bedrock_activity, "rpc.service"));
         Assert.Equal("Retrieve", Utils.GetTagValue(bedrock_activity, "rpc.method"));
+    }
+
+    private void ValidateS3ActivityTags(Activity s3_activity)
+    {
+        Assert.Equal("S3.PutBucket", s3_activity.DisplayName);
+        Assert.Equal("MyTestBucket", Utils.GetTagValue(s3_activity, "aws.s3.bucket"));
+        Assert.Equal("aws-api", Utils.GetTagValue(s3_activity, "rpc.system"));
+        Assert.Equal("S3", Utils.GetTagValue(s3_activity, "rpc.service"));
+        Assert.Equal("PutBucket", Utils.GetTagValue(s3_activity, "rpc.method"));
     }
 }

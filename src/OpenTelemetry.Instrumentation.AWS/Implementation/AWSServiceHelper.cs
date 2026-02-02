@@ -20,6 +20,7 @@ internal class AWSServiceHelper
                 .AddAttributeAWSBedrockDataSourceId("DataSourceId")
                 .AddAttributeAWSBedrockGuardrailId("GuardrailId")
                 .AddAttributeAWSBedrockKnowledgeBaseId("KnowledgeBaseId")
+                .AddAttributeAWSS3BucketName("BucketName")
                 .Build();
     }
 
@@ -30,6 +31,7 @@ internal class AWSServiceHelper
         { AWSServiceType.BedrockAgentService, ["AgentId", "KnowledgeBaseId", "DataSourceId"] },
         { AWSServiceType.BedrockAgentRuntimeService, ["AgentId", "KnowledgeBaseId"] },
         { AWSServiceType.BedrockRuntimeService, ["ModelId"] },
+         { AWSServiceType.S3Service, ["BucketName"] },
     };
 
     internal static IReadOnlyDictionary<string, List<string>> ServiceResponseParameterMap { get; } = new Dictionary<string, List<string>>()

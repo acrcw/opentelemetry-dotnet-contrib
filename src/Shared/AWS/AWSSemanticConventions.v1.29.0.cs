@@ -20,5 +20,7 @@ internal partial class AWSSemanticConventions
     {
         // AWS Attributes
         public override string AttributeAWSBedrock => "aws.bedrock";
+
+        public override string AttributeAWSS3Bucket => "aws.s3.bucket";
     }
 }
